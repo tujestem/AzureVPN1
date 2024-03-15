@@ -1,0 +1,29 @@
+# variables
+$group="grupa"
+$loc1="poland"
+$vnet1name="vnetPL1"
+$subnetname="subnetPL1"
+$vm="VM_PL_IIS"
+$publicIPName="VpnGwPublicIP"
+$vpnGwName="VpnGateway"
+$vpnGwSku="Basic" 
+$vpnClientAddressPool="172.16.0.0/24" # Zakres adresów IP dla klientów VPN
+
+# Tworzenie grupy zasobów
+az group create --name $group --location $loc1
+
+# Tworzenie sieci VNet i podsieci
+az network vnet create --address-prefixes 10.0.0.0/16 --name $vnet1name --resource-group $group --location $loc1
+az network vnet subnet create -g $group --vnet-name $vnet1name -n $subnetname --address-prefixes 10.0.0.0/24
+
+# Tworzenie maszyny wirtualnej
+az vm create --resource-group $group --name $vm --image Win2022DataCenter --vnet-name $vnet1name --subnet $subnetname --admin-username adminek --admin-password "example_degy8736ejh23"
+
+# Tworzenie publicznego adresu IP dla VPN Gateway
+az network public-ip create -n $publicIPName -g $group --allocation-method Dynamic --location $loc1
+
+# Tworzenie bramy VPN
+az network vnet-gateway create -n $vpnGwName -g $group --public-ip-addresses $publicIPName --vnet $vnet1name --gateway-type Vpn --vpn-type RouteBased --sku $vpnGwSku --client-protocol SSTP --address-prefixes $vpnClientAddressPool
+
+# Tworzenie certyfikatu self-signed 
+$cert = New-SelfSignedCertificate -DnsName "P2SRootCert" -CertStoreLocation "Cert:\LocalMachine\My" -KeyExportPolicy Exportable -KeySpec Signature
